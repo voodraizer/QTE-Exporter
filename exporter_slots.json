@@ -1,0 +1,107 @@
+{
+    "diffuse": {
+        "selected": true,
+        "suffix": "_df",
+        "fill": [
+            128,
+            128,
+            128
+        ],
+        "allowSharpen": true,
+        "downscale": 1,
+        "channels": [
+            {
+                "channel": "a",
+                "source": "alpha",
+                "fill": [
+                    255,
+                    255,
+                    255
+                ]
+            }
+        ]
+    },
+    "normal": {
+        "selected": false,
+        "suffix": "_nm",
+        "fill": [
+            128,
+            128,
+            255
+        ],
+        "allowSharpen": false,
+        "downscale": 2,
+        "channels": [
+            {
+                "channel": "a",
+                "source": "glossiness",
+                "fill": [
+                    255,
+                    255,
+                    255
+                ]
+            }
+        ]
+    },
+    "alpha": {
+        "selected": true,
+        "suffix": "_alpha",
+        "fill": [
+            255,
+            255,
+            255
+        ],
+        "allowSharpen": false,
+        "downscale": 1,
+        "channels": []
+    },
+    "mask_RGB": {
+        "selected": false,
+        "suffix": "_mask",
+        "fill": [
+            128,
+            128,
+            128
+        ],
+        "allowSharpen": true,
+        "downscale": 1,
+        "channels": [
+            {
+                "channel": "r",
+                "source": "R",
+                "fill": [
+                    255,
+                    255,
+                    255
+                ]
+            },
+            {
+                "channel": "g",
+                "source": "G",
+                "fill": [
+                    255,
+                    255,
+                    255
+                ]
+            },
+            {
+                "channel": "b",
+                "source": "B",
+                "fill": [
+                    255,
+                    255,
+                    255
+                ]
+            },
+            {
+                "channel": "a",
+                "source": "A",
+                "fill": [
+                    255,
+                    255,
+                    255
+                ]
+            }
+        ]
+    }
+}

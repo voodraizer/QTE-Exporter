@@ -6,6 +6,7 @@ import nanogui
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import photoshop_actions as ps_act
 import gui
+import settings
 
 
 class QTE_App(nanogui.Screen):
@@ -27,6 +28,8 @@ class QTE_App(nanogui.Screen):
 		# self.setScrPos(800, 40)
 		self.setScrPosCenter()
 
+		settings.LoadSettings()
+
 		self.ps_app = ps_act.GetPhotoshop()
 		self.docRef = ps_act.GetActiveDocument(self.ps_app)
 
@@ -47,7 +50,7 @@ class QTE_App(nanogui.Screen):
 		if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
 			self.setVisible(False)
 			return True
-		
+
 		return False
 
 

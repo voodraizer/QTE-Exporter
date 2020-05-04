@@ -1,0 +1,13 @@
+{
+    "options": {
+        "outputtype": "tga",
+        "nonpow2": true,
+        "sharpencontrast": false,
+        "copytoexportpath": false,
+        "copytolocalpath": true
+    },
+    "gui": {
+        "compactslotsize": true,
+        "lastprojectpath": null
+    }
+}
