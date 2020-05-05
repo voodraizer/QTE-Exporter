@@ -44,7 +44,7 @@
         ]
     },
     "alpha": {
-        "selected": true,
+        "selected": false,
         "suffix": "_alpha",
         "fill": [
             255,

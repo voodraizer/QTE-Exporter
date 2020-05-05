@@ -29,7 +29,7 @@ class QTE_Gui:
 
 		b = Button(self.screen, "Execute !")
 		b.setPosition((20, 40))
-		b.setCallback(ps_act.Actions_1)
+		b.setCallback(ps_act.ExportFiles)
 
 		self.screen.setBackground(Color(0, 0, 0, 0.5))
 

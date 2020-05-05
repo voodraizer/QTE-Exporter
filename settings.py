@@ -26,6 +26,11 @@ def GetConfFilePath():
 	return None
 
 
+def GetDefaultSettings():
+
+	pass
+
+
 def LoadSettings():
 	# Parse slots file.
 	path = GetSlotsFilePath()
