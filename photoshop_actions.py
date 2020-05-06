@@ -6,6 +6,10 @@ from photoshop import Session
 # JavaScript calls.
 # ---------------------------------------------------------------------------------------------------------------------
 def JS_RemoveAlphaChannel():
+	'''
+	Замена RemoveAlphaChannels(doc)
+	'''
+
 	jsx = r"""
 	var doc = app.activeDocument;
 	var channels = doc.channels;
@@ -42,6 +46,10 @@ def JS_ShowLayerSet(doc, layer):
 
 
 def JS_HideLayerSets(indx):
+	'''
+	Замена doc.layerSets[i].visible = False
+	'''
+
 	jsx = f"""
 	var doc = app.activeDocument;
 	doc.layerSets[{indx}].visible = false;
@@ -51,6 +59,12 @@ def JS_HideLayerSets(indx):
 
 
 def JS_CollapseLayerSet():
+	'''
+	Замена
+	executeAction(stringIDToTypeID("newPlacedLayer"), new ActionDescriptor(), DialogModes.NO)
+	doc.activeLayer.rasterize(RasterizeType.ENTIRELAYER)
+	'''
+
 	jsx = r"""
 	var doc = app.activeDocument;
 	executeAction(stringIDToTypeID("newPlacedLayer"), new ActionDescriptor(), DialogModes.NO);
@@ -103,6 +117,10 @@ def JS_SaveTgaTexture(path):
 	app.doJavaScript(jsx)
 
 def JS_CloseDocument():
+	'''
+	Замена exportedDoc.close(SaveOptions.DONOTSAVECHANGES)
+	'''
+
 	jsx = r"""
 	var doc = app.activeDocument;
 	doc.close(SaveOptions.DONOTSAVECHANGES);
@@ -194,6 +212,8 @@ def CreateLayer(doc, color=None):
 
 	doc.selection.deselect()
 
+	return doc.artLayers[0] # doc.activeLayer
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Copy layer to background.
 # Сreate it if necessary.
@@ -281,14 +301,11 @@ def GetLayerByNameOrCollapseSet(doc, name):
 
 	if (layer != None):
 		# get LayerSet.
-		print(" === Get " + name + " as layer set")
 		layer.allLocked = False
 		layer.visible = True
 
 		# Flatten layer set.
 		doc.activeLayer = layer
-		# executeAction(stringIDToTypeID("newPlacedLayer"), new ActionDescriptor(), DialogModes.NO)
-		# doc.activeLayer.rasterize(RasterizeType.ENTIRELAYER)
 		JS_CollapseLayerSet()
 
 		# doc.activeLayer.move(LocationOptions.AT_BEGINNING)
@@ -303,7 +320,6 @@ def GetLayerByNameOrCollapseSet(doc, name):
 
 		if (layer != None):
 			# get ArtLayer.
-			print(" === Get " + name + " as art layer")
 			doc.activeLayer = layer
 			layer.allLocked = False
 			layer.visible = True
@@ -354,7 +370,7 @@ def SetChannelFromLayerGroup(doc, layer, channel):
 def HideAllInRoot(doc):
 	for i in range(len(doc.layerSets)):
 		doc.layerSets[i].allLocked = False
-		JS_HideLayerSets(i) # doc.layerSets[i].visible = False
+		JS_HideLayerSets(i)
 
 	for i in range(len(doc.artLayers)):
 		doc.artLayers[i].allLocked = False
@@ -464,24 +480,17 @@ def SaveTexture(doc, saveFile, outputtype):
 # Save file by texture type.
 # ---------------------------------------------------------------------------------------------------------------------
 def ExportTexture(doc, slot_name, slot, exportPath, exportName):
-	import settings
-
-	# diffuse -- {'selected': True, 'suffix': '_df', 'fill': [128, 128, 128], 'allowSharpen': True, 'downscale': 1,
-	# 'channels': [{'channel': 'a', 'source': 'alpha', 'fill': [255, 255, 255]}]}
-
-	# print("Export texture: " + str(exportPath) + " -- " + str(exportName) + " -- " + outputtype)
 
 	# Hide all.
 	HideAllInRoot(doc)
 
-	# RemoveAlphaChannels(doc)
 	JS_RemoveAlphaChannel()
 
 	# construct document.
 	layer = GetLayerByNameOrCollapseSet(doc, slot_name)
-	if (layer != None):
-		# print(" <<=============>> Layer: " + layer.name)
-		doc.activeLayer = layer
+	if (layer is None): raise Exception("Not found layer: " + slot_name)
+
+	doc.activeLayer = layer
 
 	CopyLayerToBackground(doc, layer)
 
@@ -489,32 +498,39 @@ def ExportTexture(doc, slot_name, slot, exportPath, exportName):
 
 	for n_ch in range(len(slot["channels"])):
 		channel = slot["channels"][n_ch]
-		print("Channel: " + str(channel))
+
 		channel_layer = GetLayerByNameOrCollapseSet(doc, channel["source"])
-		if (channel_layer != None):
-			channel_layer.visible = True
-			doc.activeLayer = channel_layer
+		if (channel_layer is None):
+			if (channel["channel"] == "a"): continue
 
-			backgroundLayer = GetOrCreateBackgroundLayer(doc)
-			if (backgroundLayer != None): doc.activeLayer = backgroundLayer
+			# create default layer if not alpha.
+			channel_layer = CreateLayer(doc, channel["fill"])
 
-			# Create from channels.
-			if (channel["channel"] == "r"): SetChannelFromLayerGroup(doc, channel_layer, 1)
-			if (channel["channel"] == "g"): SetChannelFromLayerGroup(doc, channel_layer, 2)
-			if (channel["channel"] == "b"): SetChannelFromLayerGroup(doc, channel_layer, 3)
-			if (channel["channel"] == "a"): SetChannelFromLayerGroup(doc, channel_layer, 4)
+		channel_layer.visible = True
+		doc.activeLayer = channel_layer
 
-			channel_layer.visible = False
+		backgroundLayer = GetOrCreateBackgroundLayer(doc)
+		if (backgroundLayer is None): raise Exception("Not found background layer !")
 
-	HideAllInRoot(doc)
+		doc.activeLayer = backgroundLayer
+
+		# Create from channels.
+		if (channel["channel"] == "r"): SetChannelFromLayerGroup(doc, channel_layer, 1)
+		if (channel["channel"] == "g"): SetChannelFromLayerGroup(doc, channel_layer, 2)
+		if (channel["channel"] == "b"): SetChannelFromLayerGroup(doc, channel_layer, 3)
+		if (channel["channel"] == "a"): SetChannelFromLayerGroup(doc, channel_layer, 4)
+
+		channel_layer.visible = False
+
+	HideAllInRoot(doc) # TODO: раньше без этого работало. Посмотреть !!!
 
 	# downscale if needed.
 	# TODO: если нужно даунскейлить, то создаём новый файл.
-	# DownscaleSize(doc, slot)
+	# if (slot["downscale"] != 1): DownscaleSize(doc, slot)
 
 	# sharpen.
 	# TODO: проходится по настройкам слота и шарпить бэкграунд и(или) каналы.
-	# if (data.sharpencontrast == true & & slotTemplate.allowSharpen == true)
+	# if (slot["allowSharpen"] == True): # and slotTemplate.allowSharpen == True)
 	#   SharpenInkjetOutput()
 	#   doc.flatten()
 	#   # sharpen and contrast.
@@ -522,31 +538,29 @@ def ExportTexture(doc, slot_name, slot, exportPath, exportName):
 	#   doc.flatten()
 
 	import os
-	# print(settings.options["copytolocalpath"])
+	import settings
 	if (settings.options["copytolocalpath"] == True):
 		outputtype = settings.options["outputtype"]
-		# outputtype = "bmp"
 		# full path with name.
-		print("============================ COPY ============================")
 		saveFile = os.path.join(os.path.normpath(exportPath), exportName + slot["suffix"])
 		print("Export file: " + saveFile + "." + outputtype)
 		# SaveTexture(doc, saveFile, outputtype)
 		JS_SaveTgaTexture(saveFile + ".tga")
 
-	# if (settings.options.copytoexportpath == True):
-	# 	saveFile = ""
+	if (settings.options["copytoexportpath"] == True):
+		saveFile = ""
 
-	# 	# check path from XMP PSD.
-	# 	if (xmpSettings.ExportPath != ""):
-	# 		# if (Folder(xmpSettings.ExportPath).exists == false)
-	# 		# xmpPathFolder = Folder(xmpSettings.ExportPath) //.fsName.toLowerCase())
-	# 		# if (!xmpPathFolder.exists):
-	# 			# xmpPathFolder.create()
-	#
-	# 	# full path with name.
-	# 	# outputtype = xmpSettings.OutputType
-	# 	# saveFile = xmpSettings.ExportPath + "/" + exportName + suffix
-	# 	# SaveTexture(doc, saveFile, outputtype)
+		# check path from XMP PSD.
+		# if (xmpSettings.ExportPath != ""):
+			# if (Folder(xmpSettings.ExportPath).exists == false)
+			# xmpPathFolder = Folder(xmpSettings.ExportPath) //.fsName.toLowerCase())
+			# if (!xmpPathFolder.exists):
+				# xmpPathFolder.create()
+
+		# full path with name.
+		# outputtype = xmpSettings.OutputType
+		# saveFile = xmpSettings.ExportPath + "/" + exportName + suffix
+		# SaveTexture(doc, saveFile, outputtype)
 
 # ---------------------------------------------------------------------------------------------------------------------
 #
@@ -586,7 +600,6 @@ def ExportFiles():
 	for name, slot in settings.slots.items():
 		if (not slot["selected"]): continue
 		# if (not getByName(name)): continue
-		print("Slot:  " + str(name) + " -- " + str(slot))
 
 		# update progress bar.
 
@@ -595,14 +608,10 @@ def ExportFiles():
 		pass
 
 	# close.
-	# exportedDoc.close(SaveOptions.DONOTSAVECHANGES)
-	# JS_CloseDocument()
+	JS_CloseDocument()
 
 	# make original	document active
-	# ps_app.activeDocument = docRef
-
-	# ps_app.doJavaScript(f'alert("Example")')
-	# ps.echo(ps_app.active_document.name)
+	ps_app.activeDocument = docRef
 
 	print("===== END EXPORT")
 	pass
@@ -717,14 +726,12 @@ if __name__ == "__main__":
 	# if (len(sys.argv) > 1 and sys.argv[1] == "NOGUI"):
 	# 	print("RUN NOGUI")
 	# 	pass
-	# if (len(sys.argv) > 1 and sys.argv[1] == "TEST"):
-	# 	print("RUN TEST")
-	# 	# ps_app = GetPhotoshop()
-	# 	# ps_app.doJavaScript(f'alert("MAIN");')
-	# 	# ExportFiles()
-	# 	pass
+	if (len(sys.argv) > 1 and sys.argv[1] == "TEST"):
+		import settings
 
-	import settings
-	settings.LoadSettings()
-	# Test_3()
-	ExportFiles()
+		print("================= RUN TEST =================")
+		settings.LoadSettings()
+		# ps_app.doJavaScript(f'alert("MAIN");')
+		# Test_3()
+		ExportFiles()
+		pass
