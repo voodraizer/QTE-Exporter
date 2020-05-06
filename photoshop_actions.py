@@ -210,8 +210,6 @@ def GetActiveDocument(ps_app = None):
 	if (ps_app and len(ps_app.documents) > 0):
 		docRef = ps_app.activeDocument
 
-	# if (docRef): print(docRef.name)
-
 	return docRef
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -534,7 +532,7 @@ def SaveTexture(doc, saveFile, outputtype):
 	pass
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Save file by texture type.
+# Export by texture type.
 # ---------------------------------------------------------------------------------------------------------------------
 def ExportTexture(doc, slot_name, slot, exportPath, exportName):
 
@@ -621,9 +619,11 @@ def ExportTexture(doc, slot_name, slot, exportPath, exportName):
 		JS_SaveTgaTexture(saveFile + ".tga")
 
 # ---------------------------------------------------------------------------------------------------------------------
-#
+# Export all textures.
 # ---------------------------------------------------------------------------------------------------------------------
 def ExportFiles():
+	import os
+
 	print("===== START EXPORT")
 
 	ps_app = GetPhotoshop()
@@ -634,6 +634,8 @@ def ExportFiles():
 	docName = docRef.name
 	docWidth = docRef.width
 	docHeight = docRef.height
+	exportPath = docRef.path
+	if (exportPath is None) or (not os.path.exists((exportPath))): raise Exception("Document must be saved.")
 
 	# Check for errors.
 	# if (CheckForErrors(data.nonpow2)) return
@@ -641,14 +643,10 @@ def ExportFiles():
 	# Delete alpha	channels from original psd	file.
 	JS_RemoveAlphaChannel()
 
-	# delete file extension and suffix.
-	import os
-	exportPath = docRef.path
-	exportName = os.path.splitext(docRef.name)[0]
-
 	# print(" ===> " + str(exportPath) + " --- " + str(exportName))
 
 	# create new document.
+	exportName = os.path.splitext(docRef.name)[0]
 	exportedDoc = docRef.duplicate(exportName + "_export", False)
 	ps_app.activeDocument = exportedDoc
 

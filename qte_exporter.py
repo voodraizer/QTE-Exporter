@@ -56,13 +56,28 @@ class QTE_App(nanogui.Screen):
 
 if __name__ == "__main__":
 	import sys
-	print(sys.argv)
+
 	if (sys.argv[1] == "GUI"):
+		nanogui.init()
+
+		qte_app = QTE_App()
+		qte_app.Show()
+
+		nanogui.mainloop()
+
+		del qte_app
+		gc.collect()
+		nanogui.shutdown()
+		
 		pass
 	if (sys.argv[1] == "NOGUI"):
+		import photoshop_actions
+
+		photoshop_actions.ExportFiles()
 		pass
 	if (sys.argv[1] == "TEST"):
 		import photoshop_actions
+
 		photoshop_actions.ExportFiles()
 		pass
 
