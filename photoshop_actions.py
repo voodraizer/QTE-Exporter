@@ -629,6 +629,8 @@ def ExportFiles():
 	ps_app = GetPhotoshop()
 	docRef = GetActiveDocument(ps_app)
 
+	if (docRef is None): raise Exception("Not found open document.")
+
 	docName = docRef.name
 	docWidth = docRef.width
 	docHeight = docRef.height
@@ -637,7 +639,6 @@ def ExportFiles():
 	# if (CheckForErrors(data.nonpow2)) return
 
 	# Delete alpha	channels from original psd	file.
-	# RemoveAlphaChannels(docRef)
 	JS_RemoveAlphaChannel()
 
 	# delete file extension and suffix.
@@ -657,7 +658,6 @@ def ExportFiles():
 	import settings
 	for name, slot in settings.slots.items():
 		if (not slot["selected"]): continue
-		# if (not getByName(name)): continue
 
 		# update progress bar.
 
@@ -692,7 +692,7 @@ def KillConsoleWindow():
 	pass
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Test.
+# Tests.
 # ---------------------------------------------------------------------------------------------------------------------
 def Actions_1():
 	with Session() as ps:

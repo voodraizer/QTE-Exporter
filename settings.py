@@ -6,39 +6,51 @@ options = {}
 gui = {}
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# Paths.
+# ---------------------------------------------------------------------------------------------------------------------
 def GetSlotsFilePath():
 	local_dir = os.path.dirname(os.path.abspath(__file__))
 	settings_file_path = os.path.join(os.path.normpath(local_dir), "exporter_slots.json")
 
-	if (os.path.exists(settings_file_path)):
-		return settings_file_path
-
-	return None
+	return settings_file_path
 
 
 def GetConfFilePath():
 	local_dir = os.path.dirname(os.path.abspath(__file__))
 	settings_file_path = os.path.join(os.path.normpath(local_dir), "exporter_conf.json")
 
-	if (os.path.exists(settings_file_path)):
-		return settings_file_path
-
-	return None
+	return settings_file_path
 
 
-def GetDefaultSettings():
-
-	pass
-
-
+# ---------------------------------------------------------------------------------------------------------------------
+# Load.
+# ---------------------------------------------------------------------------------------------------------------------
 def LoadSettings():
 	# Parse slots file.
 	path = GetSlotsFilePath()
-	if (path == None):
-		import errno
-		raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
+	if (os.path.exists(path)):
+		ParseSlotsJson(path)
+	else:
+		# import errno
+		# raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
+		pass
 
-	# print("Path: " + str(path))
+	# Parse conf file.
+	path = GetConfFilePath()
+	if (os.path.exists(path)):
+		ParseSettingsJson(path)
+	else:
+		# import errno
+		# raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
+		pass
+
+	# Check and load default settings.
+	if (len(slots.keys()) == 0 or len(options.keys()) == 0 or len(gui.keys()) == 0): DefaultSettings()
+
+	pass
+
+def ParseSlotsJson(path):
 	with open(path, "r") as slots_file:
 		global slots
 		slots = json.load(slots_file)
@@ -51,12 +63,7 @@ def LoadSettings():
 			# print(value["selected"])
 			pass
 
-	# Parse conf file.
-	path = GetConfFilePath()
-	if (path == None):
-		import errno
-		raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
-
+def ParseSettingsJson(path):
 	with open(path, "r") as conf_file:
 		conf = json.load(conf_file)
 
@@ -68,9 +75,9 @@ def LoadSettings():
 		# print(options["compactslotsize"])
 		# print(options["lastprojectpath"])
 
-	pass
-
-
+# ---------------------------------------------------------------------------------------------------------------------
+# Save.
+# ---------------------------------------------------------------------------------------------------------------------
 def SaveSettings():
 	# Save slots file.
 	path = GetSlotsFilePath()
@@ -88,3 +95,126 @@ def SaveSettings():
 		json.dump(settings, indent=4, fp=write_file)
 
 	pass
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Create default settings and save.
+# ---------------------------------------------------------------------------------------------------------------------
+def DefaultSettings():
+	global slots
+	slots = {
+	    "diffuse": {
+	        "selected": True,
+	        "suffix": "_df",
+	        "fill": [
+	            128,
+	            128,
+	            128
+	        ],
+	        "allowSharpen": True,
+	        "downscale": 1,
+	        "channels": [
+	            {
+	                "channel": "a",
+	                "source": "alpha",
+	                "fill": [
+	                    128,
+	                    128,
+	                    128
+	                ]
+	            }
+	        ]
+	    },
+	    "normal": {
+	        "selected": True,
+	        "suffix": "_nm",
+	        "fill": [
+	            128,
+	            128,
+	            255
+	        ],
+	        "allowSharpen": False,
+	        "downscale": 2,
+	        "channels": [
+	            {
+	                "channel": "a",
+	                "source": "glossiness",
+	                "fill": [
+	                    255,
+	                    255,
+	                    255
+	                ]
+	            }
+	        ]
+	    },
+	    "alpha": {
+	        "selected": False,
+	        "suffix": "_alpha",
+	        "fill": [
+	            255,
+	            255,
+	            255
+	        ],
+	        "allowSharpen": False,
+	        "downscale": 1,
+	        "channels": []
+	    },
+	    "mask_RGB": {
+	        "selected": False,
+	        "suffix": "_mask",
+	        "fill": [
+	            128,
+	            128,
+	            128
+	        ],
+	        "allowSharpen": True,
+	        "downscale": 1,
+	        "channels": [
+	            {
+	                "channel": "r",
+	                "source": "R",
+	                "fill": [
+	                    255,
+	                    255,
+	                    255
+	                ]
+	            },
+	            {
+	                "channel": "g",
+	                "source": "G",
+	                "fill": [
+	                    255,
+	                    255,
+	                    255
+	                ]
+	            },
+	            {
+	                "channel": "b",
+	                "source": "B",
+	                "fill": [
+	                    255,
+	                    255,
+	                    255
+	                ]
+	            }
+	        ]
+	    }
+	}
+
+	global options
+	options = {
+        "outputtype": "tga",
+        "nonpow2": True,
+        "sharpencontrast": False,
+        "copytoexportpath": True,
+        "copytolocalpath": True
+    }
+
+	global gui
+	gui = {
+        "compactslotsize": True,
+        "lastprojectpath": None
+    }
+
+	# Save.
+	SaveSettings()
