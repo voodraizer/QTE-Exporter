@@ -22,7 +22,7 @@
         ]
     },
     "normal": {
-        "selected": false,
+        "selected": true,
         "suffix": "_nm",
         "fill": [
             128,

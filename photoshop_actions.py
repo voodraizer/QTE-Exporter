@@ -110,6 +110,15 @@ def JS_CloseDocument():
 	app = GetPhotoshop()
 	app.doJavaScript(jsx)
 
+def JS_GetChannelsLength():
+	jsx = r"""
+	var doc = app.activeDocument;
+	var length = doc.channels.length;
+	length;
+	"""
+	app = GetPhotoshop()
+	return int(app.doJavaScript(jsx)) + 1
+
 # ---------------------------------------------------------------------------------------------------------------------
 #
 # ---------------------------------------------------------------------------------------------------------------------
@@ -303,15 +312,14 @@ def GetLayerByNameOrCollapseSet(doc, name):
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Create channel from layerGroup and delete layerGroup after that.
-# channel - must be 0, 1, 2 or 3.
+# channel - must be 1 (r), 2 (g), 3 (b) or 4 (alpha).
 # Document must contain backgroundLayer.
 # ---------------------------------------------------------------------------------------------------------------------
 def SetChannelFromLayerGroup(doc, layer, channel):
-	if (channel != 0 and channel != 1 and channel != 2 and channel != 3):
+	if (channel != 1 and channel != 2 and channel != 3 and channel != 4):
 		return
 
-	# find background layer.
-	background = doc.backgroundLayer
+	if (not HasBackgroundLayer(doc)): raise Exception('\n\nDocument must contain background layer !')
 
 	layer.allLocked = False
 	layer.visible = True
@@ -321,9 +329,9 @@ def SetChannelFromLayerGroup(doc, layer, channel):
 	doc.selection.copy()
 	layer.visible = False
 
-	doc.activeLayer = background
+	doc.activeLayer = doc.backgroundLayer
 
-	if (channel == 3 and len(doc.channels) == 3):
+	if (channel == 4 and JS_GetChannelsLength() == 4):
 		# add alpha channel if needed.
 		doc.channels.add()
 
@@ -333,12 +341,12 @@ def SetChannelFromLayerGroup(doc, layer, channel):
 	doc.selection.deselect()
 
 	# restore channel selection.
-	doc.channels[0].visible = True
 	doc.channels[1].visible = True
 	doc.channels[2].visible = True
-	if (len(doc.channels) > 3): doc.channels[3].visible = False
+	doc.channels[3].visible = True
+	if (JS_GetChannelsLength() > 4): doc.channels[4].visible = False
 
-	doc.activeChannels = [doc.channels[0], doc.channels[1], doc.channels[2]]
+	doc.activeChannels = [doc.channels[1], doc.channels[2], doc.channels[3]]
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Hide all group and art layers in document root.
@@ -479,23 +487,26 @@ def ExportTexture(doc, slot_name, slot, exportPath, exportName):
 
 	layer.visible = False
 
-	for ch in range(len(slot["channels"])):
-		print("Channel: " + str(ch))
-		# channel_layer = GetLayerByNameOrCollapseSet(doc, slot.channels[ch].source)
-		# if (channel_layer != None):
-		# 	channel_layer.visible = True
-		# 	doc.activeLayer = channel_layer
-		#
-		# 	backgroundLayer = GetOrCreateBackgroundLayer(doc)
-		# 	if (backgroundLayer != None): doc.activeLayer = backgroundLayer
-		#
-		# 	# Create from channels.
-		# 	# if (slot.channels[ch].type == "r"): SetChannelFromLayerGroup(doc, channel_layer, 0)
-		# 	# if (slot.channels[ch].type == "g"): SetChannelFromLayerGroup(doc, channel_layer, 1)
-		# 	# if (slot.channels[ch].type == "b"): SetChannelFromLayerGroup(doc, channel_layer, 2)
-		# 	# if (slot.channels[ch].type == "a"): SetChannelFromLayerGroup(doc, channel_layer, 3)
-		#
-		# 	channel_layer.visible = False
+	for n_ch in range(len(slot["channels"])):
+		channel = slot["channels"][n_ch]
+		print("Channel: " + str(channel))
+		channel_layer = GetLayerByNameOrCollapseSet(doc, channel["source"])
+		if (channel_layer != None):
+			channel_layer.visible = True
+			doc.activeLayer = channel_layer
+
+			backgroundLayer = GetOrCreateBackgroundLayer(doc)
+			if (backgroundLayer != None): doc.activeLayer = backgroundLayer
+
+			# Create from channels.
+			if (channel["channel"] == "r"): SetChannelFromLayerGroup(doc, channel_layer, 1)
+			if (channel["channel"] == "g"): SetChannelFromLayerGroup(doc, channel_layer, 2)
+			if (channel["channel"] == "b"): SetChannelFromLayerGroup(doc, channel_layer, 3)
+			if (channel["channel"] == "a"): SetChannelFromLayerGroup(doc, channel_layer, 4)
+
+			channel_layer.visible = False
+
+	HideAllInRoot(doc)
 
 	# downscale if needed.
 	# TODO: если нужно даунскейлить, то создаём новый файл.
@@ -561,8 +572,6 @@ def ExportFiles():
 	import os
 	exportPath = docRef.path
 	exportName = os.path.splitext(docRef.name)[0]
-	# tempStr = decodeURI(exportName.substring(0, exportName.lastIndexOf(fileNameDelimiter)))
-	# if (tempStr != ""): exportName = tempStr
 
 	# print(" ===> " + str(exportPath) + " --- " + str(exportName))
 
@@ -664,8 +673,17 @@ def Test_1():
 def Test_2():
 	app = ps.Application()
 	# print(app.doJavaScript("app.activeDocument.name"))
-	JS_SaveTgaTexture("D:/ttttt.tga")
+	# JS_SaveTgaTexture("D:/ttttt.tga")
+	print(str(JS_GetChannelsLength()))
 	pass
+
+def Test_3():
+	ps_app = GetPhotoshop()
+	doc = GetActiveDocument(ps_app)
+
+	HideAllInRoot(doc)
+	SetChannelFromLayerGroup(doc, doc.artLayers[0], 4)
+	SetChannelFromLayerGroup(doc, doc.artLayers[3], 1)
 
 
 def HasBackgroundLayer_2(doc):
@@ -708,5 +726,5 @@ if __name__ == "__main__":
 
 	import settings
 	settings.LoadSettings()
-	# Test_2()
+	# Test_3()
 	ExportFiles()
