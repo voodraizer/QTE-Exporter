@@ -94,6 +94,10 @@ def JS_RemoveActiveLayer():
 	app.doJavaScript(jsx)
 
 def JS_SaveTgaTexture(path):
+	'''
+	Замена SaveTexture(doc, saveFile, xmp_output_type)
+	'''
+
 	jsx = r"""
 	var doc = app.activeDocument;
 	var saveOptions = new TargaSaveOptions();
@@ -136,6 +140,59 @@ def JS_GetChannelsLength():
 	"""
 	app = GetPhotoshop()
 	return int(app.doJavaScript(jsx)) + 1
+
+def JS_GetExporterXMPPreset():
+	# XMP meta
+	jsx = r"""
+	var qteXMPNamespace = "http://qte.exporter/1.0/";
+	var qteXMPPrefix = "qtesets:";
+
+	if (ExternalObject.AdobeXMPScript == undefined)  ExternalObject.AdobeXMPScript = new ExternalObject("lib:AdobeXMPScript");
+	XMPMeta.registerNamespace(qteXMPNamespace, qteXMPPrefix);
+	
+	//  Read xmp configs.
+	var doc = app.activeDocument;
+	
+	var xmp = new XMPMeta( doc.xmpMetadata.rawData );
+	
+	//$.writeln("Path: " + xmp.getProperty(qteXMPNamespace, "ExportPath", XMPConst.STRING));
+	//$.writeln("Type: " + xmp.getProperty(qteXMPNamespace, "OutputType", XMPConst.STRING));
+	//$.writeln("DownScale: " + xmp.getProperty(qteXMPNamespace, "DownScale", XMPConst.NUMBER));
+	
+	var ExportPath = xmp.getProperty(qteXMPNamespace, "ExportPath", XMPConst.STRING);
+	var OutputType = xmp.getProperty(qteXMPNamespace, "OutputType", XMPConst.STRING)
+	var DownScale = xmp.getProperty(qteXMPNamespace, "DownScale", XMPConst.NUMBER);
+	
+	var output = "'" + ExportPath + "|" + OutputType + "|" + DownScale + "'";
+	output; 
+	"""
+	app = GetPhotoshop()
+	return app.doJavaScript(jsx)
+
+def JS_SetExporterXMPPreset(ExportPath = "", OutputType = "", DownScale = 1):
+	jsx = f"""
+	var qteXMPNamespace = "http://qte.exporter/1.0/";
+	var qteXMPPrefix = "qtesets:";
+
+	if (ExternalObject.AdobeXMPScript == undefined)  ExternalObject.AdobeXMPScript = new ExternalObject("lib:AdobeXMPScript");
+	XMPMeta.registerNamespace(qteXMPNamespace, qteXMPPrefix);
+
+	var doc = app.activeDocument;
+	var xmp = new XMPMeta( doc.xmpMetadata.rawData );
+	
+	//xmp.deleteProperty(qteXMPNamespace, "ExportPath");
+	xmp.setProperty(qteXMPNamespace, "ExportPath", "{ExportPath}" , 0, XMPConst.STRING);
+	
+	//xmp.deleteProperty(qteXMPNamespace, "OutputType");
+	xmp.setProperty(qteXMPNamespace, "OutputType", "{OutputType}" , 0, XMPConst.STRING);
+	
+	//xmp.deleteProperty(qteXMPNamespace, "DownScale");
+	xmp.setProperty(qteXMPNamespace, "DownScale", {DownScale} , 0, XMPConst.NUMBER);
+	
+	doc.xmpMetadata.rawData = xmp.serialize();
+	"""
+	app = GetPhotoshop()
+	app.doJavaScript(jsx)
 
 # ---------------------------------------------------------------------------------------------------------------------
 #
@@ -481,6 +538,14 @@ def SaveTexture(doc, saveFile, outputtype):
 # ---------------------------------------------------------------------------------------------------------------------
 def ExportTexture(doc, slot_name, slot, exportPath, exportName):
 
+	# get XMP from PSD [ExportPath | OutputType | DownScale].
+	xmp_output = JS_GetExporterXMPPreset()
+	xmp_output = xmp_output.replace("'", "").split("|")
+	xmp_export_path = xmp_output[0]
+	xmp_output_type = xmp_output[1]
+	xmp_downscale = xmp_output[2]
+	# print(xmp_export_path + " --- " + xmp_output_type + " --- " + xmp_downscale)
+
 	# Hide all.
 	HideAllInRoot(doc)
 
@@ -544,23 +609,16 @@ def ExportTexture(doc, slot_name, slot, exportPath, exportName):
 		# full path with name.
 		saveFile = os.path.join(os.path.normpath(exportPath), exportName + slot["suffix"])
 		print("Export file: " + saveFile + "." + outputtype)
-		# SaveTexture(doc, saveFile, outputtype)
 		JS_SaveTgaTexture(saveFile + ".tga")
 
 	if (settings.options["copytoexportpath"] == True):
-		saveFile = ""
-
 		# check path from XMP PSD.
-		# if (xmpSettings.ExportPath != ""):
-			# if (Folder(xmpSettings.ExportPath).exists == false)
-			# xmpPathFolder = Folder(xmpSettings.ExportPath) //.fsName.toLowerCase())
-			# if (!xmpPathFolder.exists):
-				# xmpPathFolder.create()
+		if (xmp_export_path != ""):
+			if (not os.path.exists(xmp_export_path)): os.makedirs(xmp_export_path)
 
 		# full path with name.
-		# outputtype = xmpSettings.OutputType
-		# saveFile = xmpSettings.ExportPath + "/" + exportName + suffix
-		# SaveTexture(doc, saveFile, outputtype)
+		saveFile = xmp_export_path + "/" + exportName + slot["suffix"]
+		JS_SaveTgaTexture(saveFile + ".tga")
 
 # ---------------------------------------------------------------------------------------------------------------------
 #
@@ -694,6 +752,12 @@ def Test_3():
 	SetChannelFromLayerGroup(doc, doc.artLayers[0], 4)
 	SetChannelFromLayerGroup(doc, doc.artLayers[3], 1)
 
+def Test_4():
+	JS_SetExporterXMPPreset(ExportPath="D:/__QteExport", OutputType="tga", DownScale=2)
+	output = JS_GetExporterXMPPreset()
+	output = output.replace("'", "").split("|")
+	print(output[0] + " --- " + output[1] + " --- " + output[2])
+
 
 def HasBackgroundLayer_2(doc):
 	# has_back = JS_HasBackgroundLayer()
@@ -732,6 +796,6 @@ if __name__ == "__main__":
 		print("================= RUN TEST =================")
 		settings.LoadSettings()
 		# ps_app.doJavaScript(f'alert("MAIN");')
-		# Test_3()
+		# Test_4()
 		ExportFiles()
 		pass
