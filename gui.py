@@ -11,73 +11,188 @@ from nanogui import gl, glfw, entypo
 
 import photoshop_actions as ps_act
 
+# Colors.
+backgr_color = Color(0.5, 0.5, 0.5, 0.5)
+
+class Slot(Widget):
+
+	is_selected = False
+
+	# def __init__(self, parent, image):
+	# 	b = Button(parent, "")#, "Styled", entypo.ICON_ROCKET)
+	# 	b.setBackgroundColor(Color(0, 0, 1.0, 0.1))
+	# 	b.setFixedSize((400, 50))
+	#
+	# 	# imgPanel = ImagePanel(self)
+	# 	# imgPanel.setFixedSize((300, 50))
+	# 	# imgPanel.setImages([image])
+	#
+	# 	Label(b, "Slot", "sans-bold")
+	#
+	# 	pass
+
+	def __init__(self, parent, image):
+		super(Slot, self).__init__(parent)
+
+		b = Button(parent, "")  # , "Styled", entypo.ICON_ROCKET)
+		b.setBackgroundColor(Color(0, 0, 1.0, 0.1))
+		b.setFixedSize((400, 50))
+		# self.addChild(b)
+
+
+		# imgPanel = ImagePanel(self)
+		# imgPanel.setFixedSize((300, 50))
+		# imgPanel.setImages([image])
+
+		# l = Label(self, "Slot ====== ", "sans-bold")
+		# self.addChild(l)
+
+		pass
+
 
 class QTE_Gui:
 	# Main screen.
 	screen = None
 
+	# Main window.
+	main_wnd = None
+	# Settings window.
+	settings_wnd = None
+
 	# Window size.
 	main_width = 280
-	main_height = 450
+	main_height = 420
 
-	# Colors.
-	backgr_color = Color(0.5, 0.5, 0.5, 0.5)
+	# Images.
+	icons = None
 
 	def __init__(self, screen):
 		self.screen = screen
 
-	def MainWindow(self, show=True):
-		# label = Label(self.screen, "Actions", "sans-bold")
-		# label.setPosition((20, 20))
 
-		b = Button(self.screen, "Export")
-		b.setPosition((10, 5))
+	def MainWindow(self, show=True):
+		'''
+		Main window.
+		'''
+		self.icons = nanogui.loadImageDirectory(self.screen.nvgContext(), "icons")
+
+		self.main_wnd = Widget(self.screen)
+		layout = GroupLayout()
+		layout.setMargin(3)
+		self.main_wnd.setLayout(layout)
+		self.main_wnd.setFixedSize((self.main_width, self.main_height))
+
+		b = Button(self.main_wnd, "Export")
 		b.setFixedHeight(25)
-		b.setFixedWidth(self.main_width - 20)
-		b.setTooltip("Export")
 		b.setCallback(ps_act.ExportFiles)
 
-		icons = nanogui.loadImageDirectory(self.screen.nvgContext(), "c:/Program Files/Adobe/Adobe Photoshop 2020/Presets/Scripts/QTE_Exporter/icons/")
-
 		# Slots.
-		images = Widget(self.screen)
-		images.setPosition((20, 80))
-		images.setFixedWidth(self.main_width - 10)
-		images.setLayout(BoxLayout(Orientation.Horizontal, Alignment.Fill, 0, 1))
+		slots = Widget(self.main_wnd)
+		slots.setPosition((20, 60))
+		slots.setFixedHeight(345)
 
-		vscroll = VScrollPanel(images)
-		vscroll.setFixedWidth(images.width())
-		vscroll.setFixedHeight(250)
-		imgPanel = ImagePanel(vscroll)
-		imgPanel.setFixedWidth(images.width())
-		imgPanel.setImages(icons)
+		self.DrawSlots(slots)
+
 
 		# Tools.
-		tools = Widget(self.screen)
-		tools.setPosition((20, 420))
-		tools.setFixedWidth(self.main_width - 10)
-		tools.setLayout(BoxLayout(Orientation.Horizontal, Alignment.Fill, 0, 2))
+		self.Tools(self.main_wnd)
 
-		b = ToolButton(tools, entypo.ICON_ADD_TO_LIST)
-		def cb2(): print("Add")
-		b.setCallback(cb2)
-		ToolButton(tools, entypo.ICON_ADJUST)
-		ToolButton(tools, entypo.ICON_ALIGN_BOTTOM)
-		ToolButton(tools, entypo.ICON_INSTALL)
-
-
-		self.screen.setBackground(self.backgr_color)
+		# Final draw.
+		self.screen.setBackground(backgr_color)
 		self.screen.drawAll()
 		self.screen.drawContents()
 		self.screen.performLayout()
 
 	def SettingsWindow(self, show=True):
 
-		self.screen.setBackground(self.backgr_color)
+		self.screen.setBackground(backgr_color)
 		self.screen.drawAll()
 		self.screen.drawContents()
 		self.screen.performLayout()
 
+	def Tools(self, parent):
+		'''
+		Draw tools widget.
+		'''
+		tools = Widget(parent)
+		tools.setPosition((20, 420))
+		layout = BoxLayout(Orientation.Horizontal, Alignment.Middle, 0, 2)
+		tools.setLayout(layout)
+
+		tools2 = Widget(tools)
+		tools2.setFixedWidth(150)
+
+		b_size = (28, 28)
+		b = Button(tools, "", entypo.ICON_ADD_TO_LIST)
+		b.setFixedSize(b_size)
+
+		def add(): print("Add")
+		b.setCallback(add)
+
+		# Settings.
+		b = Button(tools, "", entypo.ICON_ADJUST)
+		b.setFixedSize(b_size)
+
+		def settings():
+			print("Add")
+			self.main_wnd.setVisible(False)
+
+		b.setCallback(settings)
+
+		#
+		b = Button(tools, "", entypo.ICON_ALIGN_BOTTOM)
+		b.setFixedSize(b_size)
+
+		# Save.
+		b = Button(tools, "", entypo.ICON_INSTALL)
+		b.setFixedSize(b_size)
+
+	def GetImage(self, name):
+		for img in self.icons:
+			if (img[1] == name): return img
+
+		return None
+
+	def DrawSlots(self, parent):
+		images = Widget(parent)
+		images.setLayout(GroupLayout())
+
+		vscroll = VScrollPanel(images)
+		vscroll.setFixedHeight(300)
+		vscroll.setFixedWidth(240)
+		vscroll.setLayout(GroupLayout())
+
+		self.DrawAllSlots(vscroll)
+
+	def DrawAllSlots(self, parent):
+		images = Widget(parent)
+		images.setLayout(BoxLayout(Orientation.Vertical, Alignment.Middle, 0, 1))
+
+		parent = images
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============00")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============11")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============")
+		b = Button(parent, "Save ============22")
+
+		# slot = Slot(slots, self.GetImage("icons/slot_bg"))
+		# slot = Slot(slots, self.GetImage("icons/slot_bg"))
+		# slot = Slot(slots, self.GetImage("icons/slot_bg"))
 
 if __name__ == "__main__":
 	import sys
