@@ -18,34 +18,14 @@ class Slot(Widget):
 
 	is_selected = False
 
-	# def __init__(self, parent, image):
-	# 	b = Button(parent, "")#, "Styled", entypo.ICON_ROCKET)
-	# 	b.setBackgroundColor(Color(0, 0, 1.0, 0.1))
-	# 	b.setFixedSize((400, 50))
-	#
-	# 	# imgPanel = ImagePanel(self)
-	# 	# imgPanel.setFixedSize((300, 50))
-	# 	# imgPanel.setImages([image])
-	#
-	# 	Label(b, "Slot", "sans-bold")
-	#
-	# 	pass
-
 	def __init__(self, parent, image):
 		super(Slot, self).__init__(parent)
 
-		b = Button(parent, "")  # , "Styled", entypo.ICON_ROCKET)
-		b.setBackgroundColor(Color(0, 0, 1.0, 0.1))
-		b.setFixedSize((400, 50))
-		# self.addChild(b)
+		b = Button(parent, "")
+		b.setBackgroundColor(Color(0, 0.3, 0.2, 0.1))
+		b.setFixedSize((300, 50))
 
-
-		# imgPanel = ImagePanel(self)
-		# imgPanel.setFixedSize((300, 50))
-		# imgPanel.setImages([image])
-
-		# l = Label(self, "Slot ====== ", "sans-bold")
-		# self.addChild(l)
+		# slot = Widget(parent)
 
 		pass
 
