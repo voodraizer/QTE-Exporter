@@ -168,31 +168,10 @@ class QTE_Gui:
 		images = Widget(parent)
 		images.setLayout(BoxLayout(Orientation.Vertical, Alignment.Middle, 0, 1))
 
-		parent = images
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============00")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============11")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============")
-		b = Button(parent, "Save ============22")
-
-		# slot = Slot(slots, self.GetImage("icons/slot_bg"))
-		# slot = Slot(slots, self.GetImage("icons/slot_bg"))
-		# slot = Slot(slots, self.GetImage("icons/slot_bg"))
+		for i in range(10):
+			slot = Slot(images, self.GetImage("icons/slot_bg"))
+		slot = Slot(images, self.GetImage("icons/slot_bg"))
+		slot = Slot(images, self.GetImage("icons/slot_bg"))
 
 if __name__ == "__main__":
 	import sys
