@@ -23,41 +23,6 @@ def JS_RemoveAlphaChannel():
 	app = GetPhotoshop()
 	app.doJavaScript(jsx)
 
-def JS_ShowLayerSet(doc, layer):
-	if (not layer): return
-
-	indx = -1
-	for i in range(len(doc.layerSets)):
-		if (doc.layerSets[i].name == layer.name):
-			indx = i
-
-	if (indx != -1 or indx < 1): return
-
-	indx -= 1 # convert to photoshop index
-
-	jsx = f"""
-	var doc = app.activeDocument;
-	var layerFrom = doc.layerSets[{indx}];
-	layerFrom.allLocked = false;
-	layerFrom.visible = true;
-	"""
-	app = GetPhotoshop()
-	app.doJavaScript(jsx)
-
-
-def JS_HideLayerSets(indx):
-	'''
-	Замена doc.layerSets[i].visible = False
-	'''
-
-	jsx = f"""
-	var doc = app.activeDocument;
-	doc.layerSets[{indx}].visible = false;
-	"""
-	app = GetPhotoshop()
-	app.doJavaScript(jsx)
-
-
 def JS_CollapseLayerSet():
 	'''
 	Замена
@@ -131,15 +96,6 @@ def JS_CloseDocument():
 	"""
 	app = GetPhotoshop()
 	app.doJavaScript(jsx)
-
-def JS_GetChannelsLength():
-	jsx = r"""
-	var doc = app.activeDocument;
-	var length = doc.channels.length;
-	length;
-	"""
-	app = GetPhotoshop()
-	return int(app.doJavaScript(jsx)) + 1
 
 def JS_GetExporterXMPPreset():
 	# XMP meta
@@ -280,10 +236,9 @@ def CopyLayerToBackground(doc, layerFrom):
 	:param layerFrom:
 	:return:
 	'''
-	# layerFrom.allLocked = False
-	# layerFrom.visible = True
-	JS_ShowLayerSet(doc, layerFrom)
-	# print("Has back: " + str(HasBackgroundLayer(doc)))
+	layerFrom.allLocked = False
+	layerFrom.visible = True
+
 	if (HasBackgroundLayer(doc)):
 		# remove background.
 		layerTo = doc.backgroundLayer
@@ -402,7 +357,7 @@ def SetChannelFromLayerGroup(doc, layer, channel):
 
 	doc.activeLayer = doc.backgroundLayer
 
-	if (channel == 4 and JS_GetChannelsLength() == 4):
+	if (channel == 4 and len(doc.channels) == 3):
 		# add alpha channel if needed.
 		doc.channels.add()
 
@@ -415,7 +370,7 @@ def SetChannelFromLayerGroup(doc, layer, channel):
 	doc.channels[1].visible = True
 	doc.channels[2].visible = True
 	doc.channels[3].visible = True
-	if (JS_GetChannelsLength() > 4): doc.channels[4].visible = False
+	if (len(doc.channels) > 3): doc.channels[4].visible = False
 
 	doc.activeChannels = [doc.channels[1], doc.channels[2], doc.channels[3]]
 
@@ -425,7 +380,7 @@ def SetChannelFromLayerGroup(doc, layer, channel):
 def HideAllInRoot(doc):
 	for i in range(len(doc.layerSets)):
 		doc.layerSets[i].allLocked = False
-		JS_HideLayerSets(i)
+		doc.layerSets[i].visible = False
 
 	for i in range(len(doc.artLayers)):
 		doc.artLayers[i].allLocked = False
@@ -435,12 +390,14 @@ def HideAllInRoot(doc):
 # Save options.
 # ---------------------------------------------------------------------------------------------------------------------
 def CreateTgaSaveOptions(hasAlpha):
+	from photoshop.enumerations import TargaBitsPerPixels
+
 	saveOptions = ps.TargaSaveOptions()
 	if (hasAlpha):
-	# 	saveOptions.resolution = TargaBitsPerPixels.THIRTYTWO
+		saveOptions.resolution = TargaBitsPerPixels.THIRTYTWO
 		saveOptions.alphaChannels = True
 	else:
-	# 	saveOptions.resolution = TargaBitsPerPixels.TWENTYFOUR
+		saveOptions.resolution = TargaBitsPerPixels.TWENTYFOUR
 		saveOptions.alphaChannels = False
 
 	saveOptions.rleCompression = False
@@ -495,19 +452,21 @@ def CreateBmpSaveOptions(hasAlpha):
 #
 # ---------------------------------------------------------------------------------------------------------------------
 def SaveTexture(doc, saveFile, outputtype):
-	# save new document
 	saveOptions = None
-	print("Ch num: " + str(doc.channels))
+
 	hasAlpha = True if (len(doc.channels) == 4) else False
 
 	if (outputtype == "tga"):
 		saveOptions = CreateTgaSaveOptions(hasAlpha)
+
 	if (outputtype == "png"):
 		saveOptions = CreatePngSaveOptions(hasAlpha)
 		# apply alpha. TODO
 		# select from alpha channel, inverted, delete, delete alpha channel.
+
 	if (outputtype == "tiff"):
 		saveOptions = CreateTiffSaveOptions(hasAlpha)
+
 	if (outputtype == "bmp"):
 		saveOptions = CreateBmpSaveOptions(hasAlpha)
 
@@ -516,18 +475,8 @@ def SaveTexture(doc, saveFile, outputtype):
 		# doc.close(SaveOptions.DONOTSAVECHANGES)
 		return
 
-	# print(" >Save as: " + saveFile + "." + outputtype)
-	# doc.saveAs(new File(saveFile + "." + outputtype), saveOptions, true, Extension.LOWERCASE)
-
-	# copy duplicate to symmetry path if one exist.
-	# var pathToExport = data.symmetrypath
-	# if (data.copytosymmetrypath == true && Folder(pathToExport).exists == true)
-		# symmetrypath = GetSymmetryPath(pathToExport)
-		# if (symmetrypath != null)
-		# 	symmetrypath = symmetrypath + "/" + exportName + suffix + "." + data.outputtype
-		# 	newDoc.saveAs(new File(symmetrypath), saveOptions, false, Extension.LOWERCASE)
-	# else if (data.copytosymmetrypath == true)
-		# print("Path to symmetry export not exist." + " Path = " + pathToExport)
+	# save new document
+	doc.saveAs(saveFile + "." + outputtype, saveOptions, asCopy=True)
 
 	pass
 
@@ -608,6 +557,7 @@ def ExportTexture(doc, slot_name, slot, exportPath, exportName):
 		saveFile = os.path.join(os.path.normpath(exportPath), exportName + slot["suffix"])
 		print("Export file: " + saveFile + "." + outputtype)
 		JS_SaveTgaTexture(saveFile + ".tga")
+		# SaveTexture(doc, saveFile, outputtype)
 
 	if (settings.options["copytoexportpath"] == True):
 		# check path from XMP PSD.
@@ -617,6 +567,7 @@ def ExportTexture(doc, slot_name, slot, exportPath, exportName):
 		# full path with name.
 		saveFile = xmp_export_path + "/" + exportName + slot["suffix"]
 		JS_SaveTgaTexture(saveFile + ".tga")
+		# SaveTexture(doc, saveFile, outputtype)
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Export all textures.
@@ -642,8 +593,6 @@ def ExportFiles():
 
 	# Delete alpha	channels from original psd	file.
 	JS_RemoveAlphaChannel()
-
-	# print(" ===> " + str(exportPath) + " --- " + str(exportName))
 
 	# create new document.
 	exportName = os.path.splitext(docRef.name)[0]
@@ -692,35 +641,6 @@ def KillConsoleWindow():
 # ---------------------------------------------------------------------------------------------------------------------
 # Tests.
 # ---------------------------------------------------------------------------------------------------------------------
-def Actions_1():
-	with Session() as ps:
-		if len(ps.app.documents) < 1:
-			docRef = ps.app.documents.add()
-		else:
-			docRef = ps.app.activeDocument
-
-		if len(docRef.layers) < 2:
-			docRef.artLayers.add()
-
-		ps.echo(docRef.activeLayer.name)
-		ps.echo(docRef.layers.item(len(docRef.layers)))
-		new_layer = docRef.artLayers.add()
-		ps.echo(new_layer.name)
-		new_layer.name = "test"
-
-
-def Actions_2():
-	app = ps.Application()
-	doc = app.documents.add()
-	new_doc = doc.artLayers.add()
-	text_color = ps.SolidColor()
-	text_color.rgb.green = 255
-	new_text_layer = new_doc
-	new_text_layer.kind = ps.LayerKind.TextLayer
-	new_text_layer.textItem.contents = 'Hello, World!'
-	new_text_layer.textItem.position = [160, 167]
-	new_text_layer.textItem.size = 40
-	new_text_layer.textItem.color = text_color
 
 def Test_1():
 	ps_app = GetPhotoshop()
@@ -736,13 +656,6 @@ def Test_1():
 	pass
 
 def Test_2():
-	app = ps.Application()
-	# print(app.doJavaScript("app.activeDocument.name"))
-	# JS_SaveTgaTexture("D:/ttttt.tga")
-	print(str(JS_GetChannelsLength()))
-	pass
-
-def Test_3():
 	ps_app = GetPhotoshop()
 	doc = GetActiveDocument(ps_app)
 
@@ -750,7 +663,7 @@ def Test_3():
 	SetChannelFromLayerGroup(doc, doc.artLayers[0], 4)
 	SetChannelFromLayerGroup(doc, doc.artLayers[3], 1)
 
-def Test_4():
+def Test_3():
 	JS_SetExporterXMPPreset(ExportPath="D:/__QteExport", OutputType="tga", DownScale=2)
 	output = JS_GetExporterXMPPreset()
 	output = output.replace("'", "").split("|")
@@ -794,6 +707,6 @@ if __name__ == "__main__":
 		print("================= RUN TEST =================")
 		settings.LoadSettings()
 		# ps_app.doJavaScript(f'alert("MAIN");')
-		# Test_4()
+		# Test_5()
 		ExportFiles()
 		pass

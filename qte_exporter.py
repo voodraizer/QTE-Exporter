@@ -68,7 +68,7 @@ if __name__ == "__main__":
 		del qte_app
 		gc.collect()
 		nanogui.shutdown()
-		
+
 		pass
 	if (sys.argv[1] == "NOGUI"):
 		import photoshop_actions
