@@ -5,24 +5,6 @@ from photoshop import Session
 # ---------------------------------------------------------------------------------------------------------------------
 # JavaScript calls.
 # ---------------------------------------------------------------------------------------------------------------------
-def JS_RemoveAlphaChannel():
-	'''
-	Замена RemoveAlphaChannels(doc)
-	'''
-
-	jsx = r"""
-	var doc = app.activeDocument;
-	var channels = doc.channels;
-	var channelCount = channels.length - 1;
-	while ( channels[channelCount].kind != ChannelType.COMPONENT ) 
-	{
-		channels[channelCount].remove();
-		channelCount--;
-	}
-	"""
-	app = GetPhotoshop()
-	app.doJavaScript(jsx)
-
 def JS_CollapseLayerSet():
 	'''
 	Замена
@@ -260,17 +242,12 @@ def CopyLayerToBackground(doc, layerFrom):
 # ---------------------------------------------------------------------------------------------------------------------
 def RemoveAlphaChannels(doc):
 	channels = doc.channels
-	# print(channels[0].kind)
-	# channelCount = len(channels)
-	# while (channels[channelCount].kind != ChannelType.COMPONENT):
-	# 	channels[channelCount].remove()
-	# 	channelCount --
 
-	# for (c in channels):
-	# 	print(c)
-	# while (channels[channelCount].kind != ChannelType.COMPONENT):
-	# 	channels[channelCount].remove()
-	# 	channelCount --
+	for c in channels:
+		# if ("alpha" in c.name.lower()):
+		if (c.kind == 2): # == ChannelType.COMPONENT
+			alpha_channel = doc.channels.getByName(c.name)
+			alpha_channel.remove()
 
 # ---------------------------------------------------------------------------------------------------------------------
 #  Check if background layer exists.
@@ -496,7 +473,7 @@ def ExportTexture(doc, slot_name, slot, exportPath, exportName):
 	# Hide all.
 	HideAllInRoot(doc)
 
-	JS_RemoveAlphaChannel()
+	RemoveAlphaChannels()
 
 	# construct document.
 	layer = GetLayerByNameOrCollapseSet(doc, slot_name)
@@ -592,7 +569,7 @@ def ExportFiles():
 	# if (CheckForErrors(data.nonpow2)) return
 
 	# Delete alpha	channels from original psd	file.
-	JS_RemoveAlphaChannel()
+	RemoveAlphaChannels()
 
 	# create new document.
 	exportName = os.path.splitext(docRef.name)[0]
@@ -647,12 +624,10 @@ def Test_1():
 	doc = GetActiveDocument(ps_app)
 
 	# print(str(HasBackgroundLayer_2(doc)))
-
 	backgroundLayer = GetOrCreateBackgroundLayer(doc)
 	layerFrom = GetLayerByNameOrCollapseSet(doc, "diffuse")
 	# print(type(layerFrom))
 	CopyLayerToBackground(doc, layerFrom)
-
 	pass
 
 def Test_2():
@@ -668,6 +643,11 @@ def Test_3():
 	output = JS_GetExporterXMPPreset()
 	output = output.replace("'", "").split("|")
 	print(output[0] + " --- " + output[1] + " --- " + output[2])
+
+def Test_4():
+	ps_app = GetPhotoshop()
+	doc = GetActiveDocument(ps_app)
+	RemoveAlphaChannels(doc)
 
 
 def HasBackgroundLayer_2(doc):
@@ -707,6 +687,6 @@ if __name__ == "__main__":
 		print("================= RUN TEST =================")
 		settings.LoadSettings()
 		# ps_app.doJavaScript(f'alert("MAIN");')
-		# Test_5()
+		# Test_4()
 		ExportFiles()
 		pass
