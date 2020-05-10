@@ -45,6 +45,8 @@ def JS_SaveTgaTexture(path):
 	Замена SaveTexture(doc, saveFile, xmp_output_type)
 	'''
 
+	path = path.replace("\\", "/")
+
 	jsx = r"""
 	var doc = app.activeDocument;
 	var saveOptions = new TargaSaveOptions();
@@ -157,7 +159,7 @@ def GetActiveDocument(ps_app = None):
 # of throwing an exception
 # The 'all' arg is optional and defaults to 'false'
 # ---------------------------------------------------------------------------------------------------------------------
-def getByName(container, name, all):
+def getByName(container, name, all = False):
 	# check for a bad index
 	# if (!name) throw "'undefined' is an invalid name/index"
 
@@ -179,8 +181,16 @@ def getByName(container, name, all):
 	#
 	# return all ? obj : undefined
 
-	for l in container:
-		if (l.name == name): return l
+	from photoshop._document import Document
+
+	if (isinstance(container, Document)):
+		for l in container.artLayers:
+			if (l.name == name): return l
+		for l in container.layerSets:
+			if (l.name == name): return l
+	else:
+		for l in container:
+			if (l.name == name): return l
 
 	return None
 
@@ -473,11 +483,24 @@ def ExportTexture(doc, slot_name, slot, exportPath, exportName):
 	# Hide all.
 	HideAllInRoot(doc)
 
-	RemoveAlphaChannels()
+	RemoveAlphaChannels(doc)
 
 	# construct document.
 	layer = GetLayerByNameOrCollapseSet(doc, slot_name)
-	if (layer is None): raise Exception("Not found layer: " + slot_name)
+	if (layer is None):
+		export_channels = [False, False, False, False]
+		n_ch = 0
+		for c in slot["channels"]:
+			if (getByName(doc, c["source"])): export_channels[n_ch] = True
+			n_ch += 1
+
+		if (True in export_channels):
+			# template only with channels
+			layer = CreateLayer(doc, slot["fill"])
+		else:
+			# raise Exception("Not found layer: " + slot_name)
+			return
+
 
 	doc.activeLayer = layer
 
@@ -529,12 +552,11 @@ def ExportTexture(doc, slot_name, slot, exportPath, exportName):
 	import os
 	import settings
 	if (settings.options["copytolocalpath"] == True):
-		outputtype = settings.options["outputtype"]
 		# full path with name.
 		saveFile = os.path.join(os.path.normpath(exportPath), exportName + slot["suffix"])
-		print("Export file: " + saveFile + "." + outputtype)
+		print("Export file: " + saveFile + "." + settings.options["outputtype"])
 		JS_SaveTgaTexture(saveFile + ".tga")
-		# SaveTexture(doc, saveFile, outputtype)
+		# SaveTexture(doc, saveFile, settings.options["outputtype"])
 
 	if (settings.options["copytoexportpath"] == True):
 		# check path from XMP PSD.
@@ -569,7 +591,7 @@ def ExportFiles():
 	# if (CheckForErrors(data.nonpow2)) return
 
 	# Delete alpha	channels from original psd	file.
-	RemoveAlphaChannels()
+	RemoveAlphaChannels(docRef)
 
 	# create new document.
 	exportName = os.path.splitext(docRef.name)[0]
@@ -647,8 +669,11 @@ def Test_3():
 def Test_4():
 	ps_app = GetPhotoshop()
 	doc = GetActiveDocument(ps_app)
-	RemoveAlphaChannels(doc)
+	# RemoveAlphaChannels(doc)
 
+	# l = getByName(doc.layerSets, "alpha")
+	# if (l): print("Found: " + l.name)
+	print(type(doc))
 
 def HasBackgroundLayer_2(doc):
 	# has_back = JS_HasBackgroundLayer()
@@ -675,12 +700,11 @@ def HasBackgroundLayer_2(doc):
 if __name__ == "__main__":
 	import sys
 
-	# if (len(sys.argv) > 1 and sys.argv[1] == "GUI"):
-	# 	print("RUN GUI")
-	# 	pass
-	# if (len(sys.argv) > 1 and sys.argv[1] == "NOGUI"):
-	# 	print("RUN NOGUI")
-	# 	pass
+	if (len(sys.argv) > 1 and sys.argv[1] == "NOGUI"):
+		import settings
+		settings.LoadSettings()
+		ExportFiles()
+		pass
 	if (len(sys.argv) > 1 and sys.argv[1] == "TEST"):
 		import settings
 

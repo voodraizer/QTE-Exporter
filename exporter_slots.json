@@ -1,7 +1,7 @@
 {
     "diffuse": {
         "selected": true,
-        "suffix": "_df",
+        "suffix": "_alb",
         "fill": [
             128,
             128,
@@ -14,28 +14,6 @@
                 "channel": "a",
                 "source": "alpha",
                 "fill": [
-                    128,
-                    128,
-                    128
-                ]
-            }
-        ]
-    },
-    "normal": {
-        "selected": true,
-        "suffix": "_nm",
-        "fill": [
-            128,
-            128,
-            255
-        ],
-        "allowSharpen": false,
-        "downscale": 2,
-        "channels": [
-            {
-                "channel": "a",
-                "source": "glossiness",
-                "fill": [
                     255,
                     255,
                     255
@@ -43,21 +21,21 @@
             }
         ]
     },
-    "alpha": {
-        "selected": false,
-        "suffix": "_alpha",
+    "normal": {
+        "selected": true,
+        "suffix": "_n",
         "fill": [
-            255,
-            255,
+            128,
+            128,
             255
         ],
         "allowSharpen": false,
-        "downscale": 1,
+        "downscale": 2,
         "channels": []
     },
-    "mask_RGB": {
-        "selected": false,
-        "suffix": "_mask",
+    "shading": {
+        "selected": true,
+        "suffix": "_sh",
         "fill": [
             128,
             128,
@@ -68,16 +46,16 @@
         "channels": [
             {
                 "channel": "r",
-                "source": "R",
+                "source": "metalness",
                 "fill": [
-                    255,
-                    255,
-                    255
+                    0,
+                    0,
+                    0
                 ]
             },
             {
                 "channel": "g",
-                "source": "G",
+                "source": "roughness",
                 "fill": [
                     255,
                     255,
@@ -86,11 +64,11 @@
             },
             {
                 "channel": "b",
-                "source": "B",
+                "source": "specular",
                 "fill": [
-                    255,
-                    255,
-                    255
+                    0,
+                    0,
+                    0
                 ]
             }
         ]
