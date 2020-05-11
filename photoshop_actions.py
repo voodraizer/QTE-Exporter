@@ -1,4 +1,4 @@
-import photoshop as ps
+import photoshop.api as ps
 from photoshop import Session
 
 
@@ -36,35 +36,6 @@ def JS_RemoveActiveLayer():
 	jsx = r"""
 	var doc = app.activeDocument;
 	doc.activeLayer.remove()
-	"""
-	app = GetPhotoshop()
-	app.doJavaScript(jsx)
-
-def JS_SaveTgaTexture(path):
-	'''
-	Замена SaveTexture(doc, saveFile, xmp_output_type)
-	'''
-
-	path = path.replace("\\", "/")
-
-	jsx = r"""
-	var doc = app.activeDocument;
-	var saveOptions = new TargaSaveOptions();
-	var hasAlpha = (doc.channels.length == 4) ? true : false;
-	if (hasAlpha == true)
-	{
-		saveOptions.resolution = TargaBitsPerPixels.THIRTYTWO;
-		saveOptions.alphaChannels = true;
-	}
-	else
-	{
-		saveOptions.resolution = TargaBitsPerPixels.TWENTYFOUR;
-		saveOptions.alphaChannels = false;
-	}
-	saveOptions.rleCompression = false;
-	"""
-	jsx += f"""
-	doc.saveAs(new File("{path}"), saveOptions, true, Extension.LOWERCASE);
 	"""
 	app = GetPhotoshop()
 	app.doJavaScript(jsx)
@@ -181,7 +152,7 @@ def getByName(container, name, all = False):
 	#
 	# return all ? obj : undefined
 
-	from photoshop._document import Document
+	from photoshop.api._document import Document
 
 	if (isinstance(container, Document)):
 		for l in container.artLayers:
@@ -377,14 +348,14 @@ def HideAllInRoot(doc):
 # Save options.
 # ---------------------------------------------------------------------------------------------------------------------
 def CreateTgaSaveOptions(hasAlpha):
-	from photoshop.enumerations import TargaBitsPerPixels
+	from photoshop.api.enumerations import TargaBitsPerPixels
 
 	saveOptions = ps.TargaSaveOptions()
 	if (hasAlpha):
-		saveOptions.resolution = TargaBitsPerPixels.THIRTYTWO
+		saveOptions.resolution = TargaBitsPerPixels.Targa32Bits
 		saveOptions.alphaChannels = True
 	else:
-		saveOptions.resolution = TargaBitsPerPixels.TWENTYFOUR
+		saveOptions.resolution = TargaBitsPerPixels.Targa24Bits
 		saveOptions.alphaChannels = False
 
 	saveOptions.rleCompression = False
@@ -555,8 +526,7 @@ def ExportTexture(doc, slot_name, slot, exportPath, exportName):
 		# full path with name.
 		saveFile = os.path.join(os.path.normpath(exportPath), exportName + slot["suffix"])
 		print("Export file: " + saveFile + "." + settings.options["outputtype"])
-		JS_SaveTgaTexture(saveFile + ".tga")
-		# SaveTexture(doc, saveFile, settings.options["outputtype"])
+		SaveTexture(doc, saveFile, settings.options["outputtype"])
 
 	if (settings.options["copytoexportpath"] == True):
 		# check path from XMP PSD.
@@ -565,8 +535,7 @@ def ExportTexture(doc, slot_name, slot, exportPath, exportName):
 
 		# full path with name.
 		saveFile = xmp_export_path + "/" + exportName + slot["suffix"]
-		JS_SaveTgaTexture(saveFile + ".tga")
-		# SaveTexture(doc, saveFile, outputtype)
+		SaveTexture(doc, saveFile, settings.options["outputtype"])
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Export all textures.
